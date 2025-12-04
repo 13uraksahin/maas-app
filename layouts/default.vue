@@ -11,6 +11,7 @@ import {
   X,
   Cpu,
   Code2,
+  Users,
 } from 'lucide-vue-next'
 
 const { isConnected } = useSocket()
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Meters', href: '/assets', icon: Gauge },
   { name: 'Devices', href: '/devices', icon: Cpu },
   { name: 'Tenants', href: '/tenants', icon: Building2 },
+  { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Alerts', href: '/alerts', icon: Bell },
 ]
 
@@ -151,6 +153,9 @@ const isActive = (href: string) => {
         <slot />
       </div>
     </main>
+
+    <!-- Toast notifications -->
+    <UiToast />
   </div>
 </template>
 

@@ -79,7 +79,7 @@ async function fetchTenants() {
   try {
     const response = await fetch(`${config.public.apiBaseUrl}/api/tenants`)
     const data = await response.json()
-    tenants.value = data || []
+    tenants.value = data.data || []
   } catch (error) {
     console.error('Failed to fetch tenants:', error)
   }
