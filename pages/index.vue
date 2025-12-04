@@ -18,45 +18,55 @@ definePageMeta({
 const store = useLiveReadingsStore()
 const { isConnected, on } = useSocket()
 
-// Listen for new readings
-onMounted(() => {
+// Fetch historical data and listen for new readings on mount
+onMounted(async () => {
+  // 1. Backfill chart with historical data from API
+  if (!store.historyLoaded) {
+    await store.fetchHistory({ limit: 100 })
+  }
+
+  // 2. Listen for new real-time readings via socket
   on('reading:new', (data: unknown) => {
     store.handleReadingEvent(data as Parameters<typeof store.handleReadingEvent>[0])
   })
 })
 
-// Demo data for display (in real app, fetch from API)
+// Dashboard stats - uses real data from store
 const stats = computed(() => [
   {
     title: 'Active Assets',
-    value: store.allAssetIds.length || 24,
-    change: '+3',
-    trend: 'up',
+    value: store.allAssetIds.length || 0,
+    change: store.allAssetIds.length > 0 ? `${store.allAssetIds.length}` : '--',
+    trend: store.allAssetIds.length > 0 ? 'up' : 'neutral',
     icon: Gauge,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
   },
   {
-    title: 'Readings Today',
-    value: store.totalReadingsReceived || 1247,
-    change: '+127',
-    trend: 'up',
+    title: 'Readings Loaded',
+    value: store.totalReadingsReceived,
+    change: store.totalReadingsReceived > 0 ? `${store.totalReadingsReceived}` : '--',
+    trend: store.totalReadingsReceived > 0 ? 'up' : 'neutral',
     icon: Activity,
     color: 'text-accent',
     bgColor: 'bg-accent/10',
   },
   {
-    title: 'Total Consumption',
-    value: '847.3 m³',
-    change: '-2.4%',
-    trend: 'down',
+    title: 'Latest Value',
+    value: store.latestReadings.length > 0 
+      ? store.formatValue(store.latestReadings[0].value)
+      : '--',
+    change: store.latestReadings.length > 0 
+      ? store.formatDelta(store.latestReadings[0].delta)
+      : '--',
+    trend: 'neutral',
     icon: Droplets,
     color: 'text-water-400',
     bgColor: 'bg-water-500/10',
   },
   {
     title: 'Active Alerts',
-    value: 3,
+    value: 0,
     change: '0',
     trend: 'neutral',
     icon: AlertTriangle,
@@ -65,47 +75,10 @@ const stats = computed(() => [
   },
 ])
 
-// Sample asset ID for demo chart
-const demoAssetId = ref('asset-demo-001')
-
-// Generate some demo data on mount
-onMounted(() => {
-  // Simulate initial readings for demo
-  const now = Date.now()
-  for (let i = 30; i >= 0; i--) {
-    const baseValue = 123.456 + (30 - i) * 0.001
-    store.handleReadingEvent({
-      time: new Date(now - i * 60000),
-      asset_id: demoAssetId.value,
-      device_id: 'device-001',
-      value: baseValue + Math.random() * 0.002,
-      delta: 0.001 + Math.random() * 0.001,
-      signal_quality: 75 + Math.floor(Math.random() * 20),
-      battery: 85,
-      assetName: 'Water Inlet - 123 Main St',
-      deviceSerial: 'SIGFOX-ABC123',
-      tenantId: 'tenant-001',
-    })
-  }
-
-  // Simulate real-time updates
-  setInterval(() => {
-    const latest = store.getChartDataForAsset(demoAssetId.value)
-    const lastValue = latest.length > 0 ? latest[latest.length - 1].y : 123.5
-    
-    store.handleReadingEvent({
-      time: new Date(),
-      asset_id: demoAssetId.value,
-      device_id: 'device-001',
-      value: lastValue + 0.001 + Math.random() * 0.002,
-      delta: 0.001 + Math.random() * 0.001,
-      signal_quality: 70 + Math.floor(Math.random() * 25),
-      battery: 85 - Math.floor(Math.random() * 3),
-      assetName: 'Water Inlet - 123 Main St',
-      deviceSerial: 'SIGFOX-ABC123',
-      tenantId: 'tenant-001',
-    })
-  }, 3000)
+// Selected asset for chart display (will show first asset with data)
+const selectedAssetId = computed(() => {
+  const ids = store.allAssetIds
+  return ids.length > 0 ? ids[0] : null
 })
 </script>
 
@@ -170,11 +143,28 @@ onMounted(() => {
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <!-- Main consumption chart -->
       <div class="xl:col-span-2">
+        <!-- Loading state -->
+        <div v-if="store.isLoading" class="chart-container flex items-center justify-center">
+          <div class="text-center text-muted-foreground">
+            <div class="w-12 h-12 mx-auto mb-4 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p class="text-lg font-medium">Loading History...</p>
+          </div>
+        </div>
+        <!-- Chart with data -->
         <RealTimeConsumptionChart 
-          :asset-id="demoAssetId"
+          v-else-if="selectedAssetId"
+          :asset-id="selectedAssetId"
           title="Real-time Consumption"
           :height="400"
         />
+        <!-- Empty state -->
+        <div v-else class="chart-container flex items-center justify-center">
+          <div class="text-center text-muted-foreground">
+            <Activity class="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p class="text-lg font-medium">No Data Yet</p>
+            <p class="text-sm mt-2">Send readings via POST /api/ingestion/webhook</p>
+          </div>
+        </div>
       </div>
       
       <!-- Latest readings sidebar -->

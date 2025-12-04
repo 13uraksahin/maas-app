@@ -7,9 +7,10 @@ import {
   Settings, 
   Building2,
   LayoutDashboard,
-  Signal,
   Menu,
   X,
+  Cpu,
+  Code2,
 } from 'lucide-vue-next'
 
 const { isConnected } = useSocket()
@@ -17,12 +18,19 @@ const route = useRoute()
 
 const isMobileMenuOpen = ref(false)
 
+// Main navigation
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Live Readings', href: '/readings', icon: Activity },
-  { name: 'Assets', href: '/assets', icon: Gauge },
+  { name: 'Meters', href: '/assets', icon: Gauge },
+  { name: 'Devices', href: '/devices', icon: Cpu },
   { name: 'Tenants', href: '/tenants', icon: Building2 },
   { name: 'Alerts', href: '/alerts', icon: Bell },
+]
+
+// Admin navigation
+const adminNavigation = [
+  { name: 'Device Profiles', href: '/admin/profiles', icon: Code2 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
@@ -56,22 +64,49 @@ const isActive = (href: string) => {
         </div>
         
         <!-- Navigation -->
-        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          <NuxtLink
-            v-for="item in navigation"
-            :key="item.name"
-            :to="item.href"
-            class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-            :class="[
-              isActive(item.href)
-                ? 'bg-primary/10 text-primary glow-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            ]"
-            @click="isMobileMenuOpen = false"
-          >
-            <component :is="item.icon" class="w-5 h-5" />
-            {{ item.name }}
-          </NuxtLink>
+        <nav class="flex-1 px-4 py-6 overflow-y-auto">
+          <!-- Main Menu -->
+          <div class="space-y-1">
+            <NuxtLink
+              v-for="item in navigation"
+              :key="item.name"
+              :to="item.href"
+              class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+              :class="[
+                isActive(item.href)
+                  ? 'bg-primary/10 text-primary glow-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              ]"
+              @click="isMobileMenuOpen = false"
+            >
+              <component :is="item.icon" class="w-5 h-5" />
+              {{ item.name }}
+            </NuxtLink>
+          </div>
+
+          <!-- Admin Menu -->
+          <div class="mt-8">
+            <p class="px-4 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Administration
+            </p>
+            <div class="space-y-1">
+              <NuxtLink
+                v-for="item in adminNavigation"
+                :key="item.name"
+                :to="item.href"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+                :class="[
+                  isActive(item.href)
+                    ? 'bg-primary/10 text-primary glow-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                ]"
+                @click="isMobileMenuOpen = false"
+              >
+                <component :is="item.icon" class="w-5 h-5" />
+                {{ item.name }}
+              </NuxtLink>
+            </div>
+          </div>
         </nav>
         
         <!-- Connection status -->

@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
 
+  // Disable SSR - Client-Only SPA (Socket.io needs client-side only)
+  ssr: false,
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
@@ -11,8 +14,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3001',
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:3001',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'https://maas-api.portall.com.tr',
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'https://maas-api.portall.com.tr',
     },
   },
 
@@ -42,6 +45,21 @@ export default defineNuxtConfig({
 
   typescript: {
     strict: true,
+  },
+
+  // Vite configuration for Cloudflare tunnel
+  vite: {
+    server: {
+      host: '0.0.0.0', // Listen on all network interfaces
+      allowedHosts: [
+        'maas-app.portall.com.tr',
+        'localhost',
+        '.portall.com.tr', // Allow all subdomains
+      ],
+      hmr: {
+        clientPort: 443, // Use HTTPS port for Cloudflare tunnel
+      },
+    },
   },
 })
 

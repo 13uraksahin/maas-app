@@ -12,8 +12,14 @@ const { isConnected, on } = useSocket()
 // Selected asset for detailed view
 const selectedAssetId = ref<string | null>(null)
 
-// Listen for new readings
-onMounted(() => {
+// Fetch history and listen for new readings on mount
+onMounted(async () => {
+  // 1. Backfill with historical data if not already loaded
+  if (!store.historyLoaded) {
+    await store.fetchHistory({ limit: 100 })
+  }
+
+  // 2. Listen for new real-time readings via socket
   on('reading:new', (data: unknown) => {
     store.handleReadingEvent(data as Parameters<typeof store.handleReadingEvent>[0])
   })

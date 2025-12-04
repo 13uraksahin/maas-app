@@ -40,9 +40,19 @@ export interface AssetSummary {
 }
 
 /**
+ * API Response format
+ */
+interface HistoryResponse {
+  success: boolean
+  count: number
+  data: LiveReading[]
+}
+
+/**
  * Live Readings Pinia Store
  * 
  * Manages real-time meter readings with:
+ * - History backfill from API on page load
  * - Event buffering to prevent UI freezing
  * - Throttled UI updates (1 second)
  * - Circular buffer for chart data (last 100 points per asset)
@@ -53,6 +63,9 @@ export const useLiveReadingsStore = defineStore('liveReadings', () => {
   const MAX_READINGS_PER_ASSET = 100
   const THROTTLE_MS = 1000
 
+  // Runtime config
+  const config = useRuntimeConfig()
+
   // State
   const readings = ref<Map<string, LiveReading[]>>(new Map())
   const chartData = ref<Map<string, ChartDataPoint[]>>(new Map())
@@ -60,6 +73,8 @@ export const useLiveReadingsStore = defineStore('liveReadings', () => {
   const buffer = ref<LiveReading[]>([])
   const totalReadingsReceived = ref(0)
   const lastUpdateTime = ref<Date | null>(null)
+  const isLoading = ref(false)
+  const historyLoaded = ref(false)
 
   // Computed
   const allAssetIds = computed(() => Array.from(readings.value.keys()))
@@ -192,6 +207,94 @@ export const useLiveReadingsStore = defineStore('liveReadings', () => {
     buffer.value = []
     totalReadingsReceived.value = 0
     lastUpdateTime.value = null
+    historyLoaded.value = false
+  }
+
+  /**
+   * Fetch historical readings from the API
+   * Called on dashboard mount to backfill the chart
+   */
+  async function fetchHistory(options?: { assetId?: string; limit?: number }): Promise<void> {
+    // Prevent duplicate fetches
+    if (isLoading.value) return
+
+    isLoading.value = true
+
+    try {
+      const params = new URLSearchParams()
+      if (options?.assetId) params.set('assetId', options.assetId)
+      if (options?.limit) params.set('limit', options.limit.toString())
+
+      const url = `${config.public.apiBaseUrl}/api/readings/history?${params.toString()}`
+      
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch history: ${response.statusText}`)
+      }
+
+      const result: HistoryResponse = await response.json()
+
+      if (result.success && result.data.length > 0) {
+        // Process historical readings - they come sorted by time ASC
+        for (const reading of result.data) {
+          // Directly process each reading (no throttling for history)
+          processHistoricalReading(reading)
+        }
+
+        totalReadingsReceived.value += result.data.length
+        lastUpdateTime.value = new Date()
+        historyLoaded.value = true
+
+        console.log(`📊 Loaded ${result.data.length} historical readings`)
+      }
+    } catch (error) {
+      console.error('Failed to fetch reading history:', error)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Process a single historical reading (no throttling)
+   * Used for backfill to quickly populate the chart
+   */
+  function processHistoricalReading(reading: LiveReading): void {
+    const assetId = reading.asset_id
+
+    // Update readings array
+    const existing = readings.value.get(assetId) || []
+    existing.push(reading)
+    // Keep only last MAX_READINGS_PER_ASSET
+    if (existing.length > MAX_READINGS_PER_ASSET) {
+      existing.shift()
+    }
+    readings.value.set(assetId, existing)
+
+    // Update chart data
+    const existingChart = chartData.value.get(assetId) || []
+    existingChart.push({
+      x: new Date(reading.time).getTime(),
+      y: reading.value,
+    })
+    // Keep only last MAX_READINGS_PER_ASSET
+    if (existingChart.length > MAX_READINGS_PER_ASSET) {
+      existingChart.shift()
+    }
+    chartData.value.set(assetId, existingChart)
+
+    // Update asset summary
+    const currentSummary = assetSummaries.value.get(assetId)
+    assetSummaries.value.set(assetId, {
+      assetId,
+      assetName: reading.assetName || assetId,
+      latestValue: reading.value,
+      latestDelta: reading.delta,
+      signalQuality: reading.signal_quality,
+      battery: reading.battery,
+      lastUpdated: new Date(reading.time),
+      readingCount: (currentSummary?.readingCount || 0) + 1,
+    })
   }
 
   /**
@@ -232,6 +335,8 @@ export const useLiveReadingsStore = defineStore('liveReadings', () => {
     buffer,
     totalReadingsReceived,
     lastUpdateTime,
+    isLoading,
+    historyLoaded,
 
     // Computed
     allAssetIds,
@@ -246,6 +351,7 @@ export const useLiveReadingsStore = defineStore('liveReadings', () => {
     handleReadingEvent,
     clearAsset,
     clearAll,
+    fetchHistory,
     getSignalInfo,
     formatValue,
     formatDelta,
