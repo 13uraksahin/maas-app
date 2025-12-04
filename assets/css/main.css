@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Deep Ocean Dark Theme */
+    --background: 220 25% 8%;
+    --foreground: 210 20% 95%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 220 25% 10%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 220 25% 18%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 220 20% 16%;
+    --muted-foreground: 215 16% 57%;
+
+    --accent: 173 80% 40%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 199 89% 48%;
+
+    --radius: 0.75rem;
+  }
+
+  .light {
+    --background: 210 20% 98%;
+    --foreground: 220 25% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 25% 10%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 173 80% 40%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 199 89% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+  }
+}
+
+@layer components {
+  /* Glass morphism card */
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl shadow-lg;
+  }
+
+  /* Glow effect */
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3),
+                0 0 40px hsl(var(--primary) / 0.1);
+  }
+
+  /* Data indicator dot */
+  .data-dot {
+    @apply w-2 h-2 rounded-full animate-pulse-subtle;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply glass-card p-6 relative overflow-hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none;
+  }
+
+  /* Chart container */
+  .chart-container {
+    @apply glass-card p-4 h-[400px];
+  }
+
+  /* Real-time indicator */
+  .realtime-badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full;
+    @apply bg-accent/10 text-accent border border-accent/20;
+  }
+
+  .realtime-badge::before {
+    content: '';
+    @apply w-1.5 h-1.5 rounded-full bg-accent animate-pulse;
+  }
+}
+
+@layer utilities {
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+
+  /* Animated background */
+  .animated-bg {
+    background: linear-gradient(-45deg, 
+      hsl(var(--primary) / 0.1), 
+      hsl(var(--accent) / 0.1), 
+      hsl(var(--secondary)), 
+      hsl(var(--background))
+    );
+    background-size: 400% 400%;
+    @apply animate-data-flow;
+  }
+
+  /* Reading value highlight */
+  .reading-value {
+    @apply font-mono text-2xl font-semibold tracking-tight;
+  }
+
+  /* Signal strength colors */
+  .signal-excellent { @apply text-signal-excellent; }
+  .signal-good { @apply text-signal-good; }
+  .signal-fair { @apply text-signal-fair; }
+  .signal-poor { @apply text-signal-poor; }
+  .signal-none { @apply text-signal-none; }
+}
+
+/* ApexCharts customization */
+.apexcharts-canvas {
+  background: transparent !important;
+}
+
+.apexcharts-tooltip {
+  @apply !bg-card !border-border !text-foreground !rounded-lg !shadow-lg;
+}
+
+.apexcharts-tooltip-title {
+  @apply !bg-muted !border-border !text-foreground;
+}
+
+.apexcharts-xaxistooltip,
+.apexcharts-yaxistooltip {
+  @apply !bg-card !border-border !text-foreground !rounded-md;
+}
+
+.apexcharts-legend-text {
+  @apply !text-muted-foreground;
+}
+
+.apexcharts-menu {
+  @apply !bg-card !border-border !text-foreground !rounded-lg;
+}
+
+.apexcharts-menu-item:hover {
+  @apply !bg-muted;
+}
+
